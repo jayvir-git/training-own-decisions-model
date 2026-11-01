@@ -1,0 +1,24 @@
+# Private data and run outputs (postings, labels, profile, adapters, exports, logs)
+data/
+outputs/
+*.sqlite
+*.duckdb
+
+# Model weights, wherever they end up
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Environment and caches
+.venv/
+.env
+.env.*
+unsloth_compiled_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log

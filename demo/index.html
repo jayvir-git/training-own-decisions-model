@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Decision Demo</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1b2433; --muted: #5c6575;
+    --line: #e4e7ec; --accent: #2563eb; --focus: #93c5fd;
+    --strong: #15803d; --strong-bg: #e7f6ec;
+    --stretch: #b45309; --stretch-bg: #fdf3e4;
+    --reject: #b91c1c; --reject-bg: #fdecec;
+    --bad: #dc2626; --good: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: var(--ink); background: var(--bg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 28px 22px 48px; }
+  header { margin-bottom: 20px; }
+  header h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); max-width: 72ch; }
+  main { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 20px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .panel h2 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .example { font-size: 12.5px; }
+
+  label { display: block; font-weight: 600; font-size: 13.5px; margin: 12px 0 4px; }
+  label:first-of-type { margin-top: 0; }
+  input, textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    font: inherit; color: var(--ink); background: #fbfcfe;
+  }
+  textarea { resize: vertical; min-height: 210px; }
+  input:focus, textarea:focus, button:focus-visible, .sentence:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--accent);
+  }
+  .btn {
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    border-radius: 8px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .btn.secondary { background: #fff; color: var(--accent); }
+  .btn.secondary:hover { background: #f0f5ff; }
+
+  .placeholder { color: var(--muted); margin: 8px 0 0; }
+  .muted { color: var(--muted); }
+  .error { color: var(--reject); font-weight: 600; }
+
+  .verdict-chip {
+    display: inline-flex; align-items: baseline; gap: 10px; border-radius: 10px;
+    padding: 10px 18px; font-weight: 700; margin-bottom: 10px;
+  }
+  .v-strong { background: var(--strong-bg); color: var(--strong); }
+  .v-stretch { background: var(--stretch-bg); color: var(--stretch); }
+  .v-reject { background: var(--reject-bg); color: var(--reject); }
+  .vc-word { font-size: 26px; letter-spacing: .04em; }
+  .vc-prob { font-size: 15px; font-weight: 600; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+  .chip { display: inline-block; border: 1px solid var(--line); border-radius: 999px;
+    background: #fafbfc; color: var(--muted); padding: 2px 10px; font-size: 12.5px; }
+  .chip-yes { background: var(--reject-bg); color: var(--reject); border-color: #f5c6c6; }
+  .chip-no { background: var(--strong-bg); color: var(--strong); border-color: #bfe3cc; }
+  .chip.warn { background: var(--stretch-bg); color: var(--stretch); border-color: #eed9bb; }
+
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .card h3 { margin: 0 0 10px; font-size: 14px; }
+  .lead { margin: 0 0 10px; font-weight: 600; }
+
+  .brow { display: grid; grid-template-columns: 92px 1fr 58px; align-items: center;
+    gap: 10px; margin: 5px 0; }
+  .blabel { font-size: 13px; color: var(--muted); text-align: right; }
+  .bval { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .btrack { background: #eef0f3; border-radius: 999px; height: 10px; overflow: hidden; }
+  .bfill { height: 100%; border-radius: 999px; background: #9aa3b2; transition: width .25s ease; }
+  .f-strong { background: var(--strong); }
+  .f-stretch { background: var(--stretch); }
+  .f-reject { background: var(--reject); }
+  .f-yes { background: var(--bad); }
+  .f-no { background: var(--strong); }
+
+  .yesno { margin-bottom: 12px; }
+  .yesno-head { display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; margin-bottom: 4px; }
+  .yn-label { font-weight: 600; font-size: 14px; }
+
+  .why-wrap { margin-top: 4px; }
+  .why-panel { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .sentences { margin: 6px 0 10px; }
+  .sentence { padding: 2px 3px; border-radius: 5px; cursor: default; }
+  .sentence.out { opacity: .45; text-decoration: underline dotted #b6bcc7; }
+  .badge { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px;
+    color: var(--muted); margin: 4px 0 10px; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+    vertical-align: -1px; margin-right: 5px; border: 1px solid var(--line); }
+  .drivers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .drivers { grid-template-columns: 1fr; } }
+  .drivers h4 { margin: 0 0 4px; font-size: 13px; }
+  .drivers ul { margin: 0; padding-left: 18px; font-size: 13.5px; }
+
+  .caption { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; }
+  footer { margin-top: 22px; font-size: 12.5px; color: var(--muted); }
+  form button[type="submit"] { margin-top: 16px; width: 100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Typed job-posting decisions, running locally</h1>
+    <p>Paste a job posting and get typed answers with probabilities: verdict, hard gates,
+      and required years &mdash; plus a sentence-level &ldquo;why&rdquo; view. Typed answers from a
+      0.8B model running locally (GGUF, llama.cpp). Nothing leaves this machine.</p>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="posting-heading">
+      <h2 id="posting-heading">Posting</h2>
+      <div class="examples" id="examples"></div>
+      <form id="posting-form">
+        <label for="f-title">Job title</label>
+        <input id="f-title" autocomplete="off">
+        <label for="f-company">Company</label>
+        <input id="f-company" autocomplete="off">
+        <label for="f-location">Location</label>
+        <input id="f-location" autocomplete="off">
+        <label for="f-description">Description</label>
+        <textarea id="f-description"></textarea>
+        <button class="btn" type="submit" id="decide-btn">Decide</button>
+      </form>
+    </section>
+    <section class="panel" aria-labelledby="results-heading">
+      <h2 id="results-heading">Decision</h2>
+      <div id="results" aria-live="polite">
+        <p class="placeholder">Paste a posting (or pick an example) and press Decide.</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    Local demo for a trusted machine &mdash; no authentication, no upload. The model reads the
+    posting together with a private policy context that stays on this computer and is never
+    shown or sent anywhere.
+  </footer>
+</div>
+
+<script>
+"use strict";
+const BUCKETS = ["Unstated / 0 y", "1\u20132 y", "3\u20134 y", "5+ y"];
+const VERDICTS = ["strong", "stretch", "reject"];
+const $ = (id) => document.getElementById(id);
+let currentPosting = null;
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function postJSON(path, body) {
+  const response = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  let data = {};
+  try { data = await response.json(); } catch (_) { /* non-JSON error body */ }
+  if (!response.ok) {
+    const error = new Error(data.error || ("HTTP " + response.status));
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
+function pct(p) { return (100 * p).toFixed(1) + "%"; }
+function fmtDelta(v) {
+  return (v >= 0 ? "+" : "\u2212") + Math.abs(v || 0).toFixed(2);
+}
+
+function barRow(label, probability, fillClass) {
+  const row = el("div", "brow");
+  row.append(el("span", "blabel", label));
+  const fill = el("div", "bfill" + (fillClass ? " " + fillClass : ""));
+  fill.style.width = (100 * probability).toFixed(1) + "%";
+  const track = el("div", "btrack");
+  track.append(fill);
+  row.append(track, el("span", "bval", pct(probability)));
+  return row;
+}
+
+function yesNo(label, answer) {
+  const wrap = el("div", "yesno");
+  const head = el("div", "yesno-head");
+  head.append(el("span", "yn-label", label));
+  head.append(el("span", "chip " + (answer.answer ? "chip-yes" : "chip-no"),
+    (answer.answer ? "YES" : "NO") + " \u00b7 " + pct(answer.probabilities[String(answer.answer)])));
+  wrap.append(head);
+  wrap.append(barRow("yes", answer.probabilities.true, answer.answer ? "f-yes" : ""));
+  wrap.append(barRow("no", answer.probabilities.false, answer.answer ? "" : "f-no"));
+  return wrap;
+}
+
+function renderDecision(data) {
+  const answers = data.answers;
+  const box = $("results");
+  box.replaceChildren();
+
+  const verdict = answers.verdict;
+  const chip = el("span", "verdict-chip v-" + verdict.answer);
+  chip.append(el("span", "vc-word", verdict.answer.toUpperCase()),
+              el("span", "vc-prob", pct(verdict.probabilities[verdict.answer])));
+  box.append(chip);
+
+  const meta = el("div", "meta");
+  meta.append(el("span", "chip", Math.round(data.latency_ms) + " ms on this laptop"));
+  if (data.state_truncated) {
+    meta.append(el("span", "chip warn", "long posting: input truncated to the 950-token budget"));
+  }
+  box.append(meta);
+
+  const verdictCard = el("section", "card");
+  verdictCard.append(el("h3", null, "Verdict"));
+  for (const name of VERDICTS) {
+    verdictCard.append(barRow(name, verdict.probabilities[name], "f-" + name));
+  }
+  box.append(verdictCard);
+
+  const gates = el("section", "card");
+  gates.append(el("h3", null, "Hard gates"));
+  gates.append(yesNo("Sponsorship blocked", answers.sponsorship_blocked));
+  gates.append(yesNo("Clearance / citizenship required", answers.clearance_or_citizenship_required));
+  box.append(gates);
+
+  const years = answers.min_years;
+  const yearsCard = el("section", "card");
+  yearsCard.append(el("h3", null, "Required years of experience"));
+  yearsCard.append(el("p", "lead", "Most likely: " + BUCKETS[years.answer] +
+    " (" + pct(years.probabilities[String(years.answer)]) + ")"));
+  for (let i = 0; i < BUCKETS.length; i++) {
+    yearsCard.append(barRow(BUCKETS[i], years.probabilities[String(i)] || 0, i === years.answer ? "f-stretch" : ""));
+  }
+  box.append(yearsCard);
+
+  const whyWrap = el("div", "why-wrap");
+  const whyButton = el("button", "btn secondary");
+  whyButton.type = "button";
+  whyButton.id = "why-button";
+  whyButton.textContent = "Why? \u2014 highlight what pushed the verdict";
+  whyButton.addEventListener("click", explain);
+  const whyPanel = el("div", "why-panel");
+  whyPanel.id = "why-panel";
+  whyPanel.hidden = true;
+  whyWrap.append(whyButton, whyPanel);
+  box.append(whyWrap);
+
+  box.append(el("p", "caption",
+    "Typed answers from a 0.8B model running locally (GGUF, llama.cpp). " +
+    "Probabilities are model confidence under a frozen policy, not hiring advice."));
+}
+
+function tint(deltaReject, deltaGood, scale) {
+  const dr = deltaReject || 0, dg = deltaGood || 0;
+  if (Math.abs(dr) < 0.005 && Math.abs(dg) < 0.005) return "rgba(120,124,134,.10)";
+  const towardReject = Math.abs(dr) >= Math.abs(dg);
+  const magnitude = towardReject ? dr : dg;
+  const alpha = 0.10 + 0.45 * Math.min(1, Math.abs(magnitude) / scale);
+  return towardReject ? "rgba(220,38,38," + alpha.toFixed(2) + ")"
+                      : "rgba(37,99,235," + alpha.toFixed(2) + ")";
+}
+
+function legend() {
+  const box = el("div", "legend");
+  const items = [
+    ["#f3b3b3", "toward reject"], ["#b9cff2", "toward good fit"],
+    ["#e5e7eb", "little effect"], ["#ffffff", "dimmed = outside the 950-token input budget"]
+  ];
+  for (const [color, text] of items) {
+    const item = el("span");
+    const swatch = el("span", "swatch");
+    swatch.style.background = color;
+    item.append(swatch, document.createTextNode(text));
+    box.append(item);
+  }
+  return box;
+}
+
+function driverText(entry, index) {
+  if (typeof entry === "string") return entry;
+  if (entry && typeof entry === "object") {
+    if (typeof entry.text === "string") return entry.text;
+    if (typeof entry.index === "number") return "Sentence #" + (entry.index + 1);
+  }
+  return "Sentence #" + (index + 1);
+}
+
+function renderExplain(data) {
+  const panel = $("why-panel");
+  panel.hidden = false;
+  panel.replaceChildren();
+  const sentences = data.sentences || [];
+  if (!sentences.length) {
+    panel.append(el("p", "muted", "No sentence-level detail was returned."));
+    return;
+  }
+  const scale = Math.max(0.02,
+    ...sentences.map(s => Math.max(Math.abs(s.delta_reject || 0), Math.abs(s.delta_good || 0))));
+  const wrap = el("div", "sentences");
+  wrap.setAttribute("role", "list");
+  for (const s of sentences) {
+    const span = el("span", "sentence" + (s.in_state ? "" : " out"));
+    span.setAttribute("role", "listitem");
+    span.setAttribute("tabindex", "0");
+    span.textContent = s.text + " ";
+    if (s.in_state) span.style.background = tint(s.delta_reject, s.delta_good, scale);
+    const badge = el("span", "badge");
+    badge.textContent = "\u0394 reject " + fmtDelta(s.delta_reject) +
+                       " \u00b7 \u0394 fit " + fmtDelta(s.delta_good) +
+                       (s.in_state ? "" : " \u00b7 outside budget");
+    span.title = "Effect of this sentence \u2014 reject push " + fmtDelta(s.delta_reject) +
+      ", good-fit push " + fmtDelta(s.delta_good) +
+      (s.verdict_if_removed ? "; verdict if removed: " + s.verdict_if_removed : "") +
+      (s.in_state ? "" : "; this sentence fell outside the 950-token model input");
+    span.append(badge);
+    wrap.append(span);
+    wrap.append(document.createTextNode(" "));
+  }
+  panel.append(el("p", "muted",
+    "Each sentence was removed and the decision re-run locally. Red pushes toward reject, " +
+    "blue pushes toward a good fit; the numbers are probability shifts, not just colours."));
+  panel.append(wrap);
+  panel.append(legend());
+
+  // Effects under 2 points are noise; listing them as "drivers" misleads.
+  const MIN_EFFECT = 0.02;
+  const rejectDrivers = (data.top_reject_drivers || []).filter(d => (d.delta_reject || 0) >= MIN_EFFECT);
+  const goodDrivers = (data.top_good_drivers || []).filter(d => (d.delta_good || 0) >= MIN_EFFECT);
+  if (!rejectDrivers.length && !goodDrivers.length) {
+    panel.append(el("p", "muted",
+      "No single sentence moves this decision by 2 points or more. The posting has several " +
+      "overlapping reasons, so removing any one of them leaves the verdict unchanged."));
+  } else {
+    const drivers = el("div", "drivers");
+    const rCard = el("section", "card");
+    rCard.append(el("h4", null, "Pushed toward reject"));
+    const rList = el("ul");
+    rejectDrivers.forEach((entry, i) => rList.append(el("li", null, driverText(entry, i))));
+    if (!rejectDrivers.length) rList.append(el("li", null, "none"));
+    rCard.append(rList);
+    const gCard = el("section", "card");
+    gCard.append(el("h4", null, "Pushed toward a good fit"));
+    const gList = el("ul");
+    goodDrivers.forEach((entry, i) => gList.append(el("li", null, driverText(entry, i))));
+    if (!goodDrivers.length) gList.append(el("li", null, "none"));
+    gCard.append(gList);
+    drivers.append(rCard, gCard);
+    panel.append(drivers);
+  }
+}
+
+async function explain() {
+  const panel = $("why-panel");
+  panel.hidden = false;
+  panel.replaceChildren(el("p", "muted",
+    "Re-running the decision once per sentence\u2026 a few seconds on the local model."));
+  const button = $("why-button");
+  button.disabled = true;
+  try {
+    renderExplain(await postJSON("/api/explain", currentPosting));
+  } catch (error) {
+    if (error.status === 501) {
+      panel.replaceChildren(el("p", "muted",
+        "Sentence-level explanation is not available in this build."));
+    } else {
+      panel.replaceChildren(el("p", "error", "Explanation failed: " + error.message));
+    }
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function fillForm(example) {
+  $("f-title").value = example.posting.title;
+  $("f-company").value = example.posting.company;
+  $("f-location").value = example.posting.location;
+  $("f-description").value = example.posting.description;
+  $("f-description").focus();
+}
+
+function waitForSelector(selector, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const started = performance.now();
+    const tick = () => {
+      if (document.querySelector(selector)) return resolve();
+      if (performance.now() - started > timeoutMs) return reject(new Error("timeout: " + selector));
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+}
+
+// Deep link for recordings and screenshots: #example=citizens-only&why=1 fills the
+// form, runs the decision, and (with why=1) opens the sentence-level view.
+async function autoRunFromHash() {
+  const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const id = params.get("example");
+  if (!id) return;
+  try {
+    const response = await fetch("/api/examples");
+    const example = (await response.json()).find(e => e.id === id);
+    if (!example) return;
+    fillForm(example);
+    $("posting-form").requestSubmit();
+    if (params.get("why") === "1") {
+      await waitForSelector("#why-button", 60000);
+      $("why-button").click();
+    }
+  } catch (_) { /* manual use is unaffected */ }
+}
+
+async function loadExamples() {
+  try {
+    const response = await fetch("/api/examples");
+    const examples = await response.json();
+    const host = $("examples");
+    for (const example of examples) {
+      const button = el("button", "btn secondary example");
+      button.type = "button";
+      button.textContent = example.label + " \u00b7 expect " + example.expect;
+      button.addEventListener("click", () => fillForm(example));
+      host.append(button);
+    }
+  } catch (_) { /* examples are optional chrome */ }
+}
+
+$("posting-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const posting = {
+    title: $("f-title").value,
+    company: $("f-company").value,
+    location: $("f-location").value,
+    description: $("f-description").value
+  };
+  if (!posting.description.trim()) {
+    $("results").replaceChildren(el("p", "error", "Paste a posting description first."));
+    return;
+  }
+  currentPosting = posting;
+  const button = $("decide-btn");
+  button.disabled = true;
+  button.textContent = "Deciding\u2026";
+  $("results").replaceChildren(el("p", "muted", "Asking the local model\u2026"));
+  try {
+    renderDecision(await postJSON("/api/decide", posting));
+  } catch (error) {
+    $("results").replaceChildren(el("p", "error", "Decision failed: " + error.message));
+  } finally {
+    button.disabled = false;
+    button.textContent = "Decide";
+  }
+});
+
+loadExamples();
+autoRunFromHash();
+</script>
+</body>
+</html>
