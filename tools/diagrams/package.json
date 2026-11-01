@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "scripts": { "render": "node render.mjs" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "pele": "1.13.0"
+  }
+}

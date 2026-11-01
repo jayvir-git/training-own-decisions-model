@@ -28,20 +28,13 @@ The builder maps an explicit labeller `unknown` on a boolean field to false (“
 
 ## Pipeline
 
-```mermaid
-flowchart TD
-    A[Private posting snapshots and reviewer receipts] --> B[Employer-disjoint splits]
-    B --> C[Frozen policy and frontier labeller bake-off]
-    C --> D[Teacher labels, second opinions, tie-breaks]
-    D --> E[State + typed questions + gold]
-    E --> F[Gate-aware truncation]
-    F --> G[Quantized Qwen backbone + LoRA + decision head]
-    G --> H[Validation calibration and model selection]
-    H --> I[Saved adapter reload check]
-    I --> J[One reported test evaluation]
-    I --> K[Separate external agreement check]
-    A --> H
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/pipeline-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/pipeline-light.svg">
+  <img alt="Pipeline: private snapshots and reviewer receipts become employer-disjoint splits and teacher labels; typed states are truncated, trained and calibrated; a saved-adapter reload check precedes the reported test evaluation and separate external agreement check." src="docs/figures/pipeline-light.svg" width="440">
+</picture>
+
+Rendered with [Pele](https://pele.run/) from the editable [Mermaid source](docs/figures/pipeline.mmd), with light and dark themes matching the project figures.
 
 The receipts provide an evaluation reference distinct from the teacher labels. They are historical **agent reviewer judgments**, not ground-truth human preferences. The pipeline retains their provenance rather than treating every source as interchangeable.
 
@@ -272,6 +265,15 @@ python -m uv run --no-project --with matplotlib python -B scripts/make_rule_test
 ```
 
 The figure scripts use the Segoe UI font; elsewhere matplotlib falls back to its default font. The individual explanation figure is withheld because it contains private posting excerpts.
+
+To regenerate the pipeline diagram (Node.js 20 or newer; no Python or private data needed):
+
+```powershell
+npm ci --prefix tools/diagrams
+npm run render --prefix tools/diagrams
+```
+
+Pele is pinned in `tools/diagrams/package-lock.json`. Theme colors and typography live in `tools/diagrams/render.mjs`; the generated SVGs are committed so GitHub needs no JavaScript to display them.
 
 ### 2. Training environment (CUDA GPU)
 

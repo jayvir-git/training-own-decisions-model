@@ -1,0 +1,21 @@
+flowchart TB
+  subgraph DATA["01 / DATA & LABELS"]
+    direction TB
+    A["Private posting snapshots<br/>+ reviewer receipts"] --> B["Employer-disjoint splits"]
+    B --> C["Frozen policy<br/>+ labeller bake-off"]
+    C --> D["Teacher labels<br/>+ second opinions + tie-breaks"]
+  end
+  subgraph MODEL["02 / TRAIN & CALIBRATE"]
+    direction TB
+    E["State + typed questions<br/>+ gold answers"] --> F["Gate-aware truncation"]
+    F --> G["Quantized Qwen backbone<br/>+ LoRA + decision head"]
+    G --> H["Validation calibration<br/>+ model selection"]
+  end
+  subgraph CHECK["03 / EVALUATE"]
+    direction TB
+    I["Saved adapter<br/>reload check"] --> J["One reported<br/>test evaluation"]
+    I --> K["Separate external<br/>agreement check"]
+  end
+  D --> E
+  H --> I
+  A -.-> H
